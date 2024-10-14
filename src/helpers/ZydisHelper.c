@@ -180,7 +180,7 @@ char* GetFunctionNameFromAddress(uint8_t* lpAddress) {
     if (!SymFromAddr(hProcess, (DWORD64) lpAddress, &dqDisplacement, lpSymbol)) {
         PRINT_WARNING("SymFromAddr failed for 0x%p in GetCurrentProcess: 0x%X.", lpAddress, GetLastError());
         SymCleanup(hProcess);
-        return "_unknown_";
+        return "_unknown_"; 
     }
 
     // Allocate memory for the function name
@@ -365,7 +365,7 @@ uint64_t GetBestEffortSizeOfByteSequence(ZydisDecodedInstruction* zdInstruction,
     }
 
 RETURN_RESULT:
-    PRINT_VERBOSE("GetBestEffortSizeOfByteSequence of %s located at %p resulted in: %d.", lpFunctionName, lpCurrentBD->lpLastKnownNextAddress, qwSizeToReturn);
+    PRINT_VERBOSE("GetBestEffortSizeOfByteSequence of %s located at 0x%p resulted in: %d.", lpFunctionName, lpCurrentBD->lpLastKnownNextAddress, qwSizeToReturn);
     return qwSizeToReturn;
 }
 
@@ -436,6 +436,13 @@ void EnrichByteDescriptor(ZydisDecodedInstruction* zdInstruction, ZydisDecodedOp
         case ZYDIS_MNEMONIC_RET:
             lpCurrentBD->lpLastKnownNextBreakpointAddress = (uint8_t*) *(uintptr_t*) lpContext->Rsp;
 
+            break;
+        
+        /**
+         * Syscall
+         */ 
+        case ZYDIS_MNEMONIC_SYSCALL:
+            PRINT_FAILURE_AND_ABORT("Syscalls have not yet been implemented");
             break;
         
         /**

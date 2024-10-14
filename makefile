@@ -19,4 +19,4 @@ clean:
 	rm -f ./dst/$(TARGET).*
 	
 ./dst/$(TARGET).x64.exe:
-	$(CC_X64) ./src/$(TARGET).c -o ./dst/$(TARGET).x64.exe -masm=intel -I inc -ldbghelp
+	$(CC_X64) ./src/$(TARGET).c -o ./dst/$(TARGET).x64.exe -masm=intel -I inc -ldbghelp -lkernel32 -luser32 -lntdll -lole32 -loleaut32
