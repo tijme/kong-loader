@@ -160,7 +160,7 @@ char* GetFunctionNameFromAddress(uint8_t* lpAddress) {
 
     // Initialize symbol handler
     if (!SymInitialize(hProcess, NULL, TRUE)) {
-        PRINT_WARNING("SymInitialize failedin GetCurrentProcess: 0x%X.", GetLastError());
+        PRINT_WARNING("SymInitialize failedin GetFunctionNameFromAddress: 0x%X.", GetLastError());
         return "_unknown_";
     }
 
@@ -178,7 +178,7 @@ char* GetFunctionNameFromAddress(uint8_t* lpAddress) {
     // Get symbol information for the provided address
     DWORD64 dqDisplacement = 0;
     if (!SymFromAddr(hProcess, (DWORD64) lpAddress, &dqDisplacement, lpSymbol)) {
-        PRINT_WARNING("SymFromAddr failed for 0x%p in GetCurrentProcess: 0x%X.", lpAddress, GetLastError());
+        PRINT_WARNING("SymFromAddr failed for 0x%p in GetFunctionNameFromAddress: 0x%X.", lpAddress, GetLastError());
         SymCleanup(hProcess);
         return "_unknown_"; 
     }
@@ -186,7 +186,7 @@ char* GetFunctionNameFromAddress(uint8_t* lpAddress) {
     // Allocate memory for the function name
     char* lpFunctionName = (char*) malloc(lpSymbol->NameLen + 1);
     if (!lpFunctionName) {
-        PRINT_WARNING("Malloc failed for 0x%p in GetCurrentProcess: 0x%X.", lpAddress, GetLastError());
+        PRINT_WARNING("Malloc failed for 0x%p in GetFunctionNameFromAddress: 0x%X.", lpAddress, GetLastError());
         SymCleanup(hProcess);
         return "_unknown_";
     }
@@ -470,8 +470,23 @@ void EnrichByteDescriptor(ZydisDecodedInstruction* zdInstruction, ZydisDecodedOp
                 goto ZYDIS_MNEMONIC_CALL_BREAK;
             }
 
+            if (zdFirstOperand.type == ZYDIS_OPERAND_TYPE_MEMORY) {
+                uint64_t base = zdFirstOperand.mem.base != ZYDIS_REGISTER_NONE ? getCpuRegisterValue(lpContext, zdFirstOperand.mem.base) : 0;
+                uint64_t index = zdFirstOperand.mem.index != ZYDIS_REGISTER_NONE ? getCpuRegisterValue(lpContext, zdFirstOperand.mem.index) : 0;
+                uint8_t* targetAddress = (uint8_t*) (base + (index * zdFirstOperand.mem.scale) + zdFirstOperand.mem.disp.value);
+                
+                if (!IsAddressWithinBounds(&lpPD, targetAddress)) {
+                    lpCurrentBD->lpLastKnownNextBreakpointAddress = lpCurrentAddress + zdInstruction->length;
+                    lpCurrentBD->lpLastKnownNextAddress = targetAddress;
+                } else {
+                    lpCurrentBD->lpLastKnownNextBreakpointAddress = targetAddress;
+                    lpCurrentBD->lpLastKnownNextAddress = targetAddress;
+                }
+                goto ZYDIS_MNEMONIC_CALL_BREAK;
+            }
+
             // Fail or break
-            PRINT_FAILURE_AND_ABORT("Unknown operand type 0x%X", zdFirstOperand.type);
+            PRINT_FAILURE_AND_ABORT("Unknown operand type in call 0x%X", zdFirstOperand.type);
             ZYDIS_MNEMONIC_CALL_BREAK: break;
 
         /**
@@ -500,7 +515,7 @@ void EnrichByteDescriptor(ZydisDecodedInstruction* zdInstruction, ZydisDecodedOp
             }
 
             // Fail or break
-            PRINT_FAILURE_AND_ABORT("Unknown operand type 0x%X", zdFirstOperand.type);
+            PRINT_FAILURE_AND_ABORT("Unknown operand type in jmp 0x%X", zdFirstOperand.type);
             ZYDIS_MNEMONIC_JMP_BREAK: break;
 
         /**
@@ -586,6 +601,20 @@ void EnrichByteDescriptor(ZydisDecodedInstruction* zdInstruction, ZydisDecodedOp
          */
         case ZYDIS_MNEMONIC_JLE:
             if (getCpuFlagValue(lpContext, ZYDIS_CPUFLAG_ZF) || (getCpuFlagValue(lpContext, ZYDIS_CPUFLAG_SF) != getCpuFlagValue(lpContext, ZYDIS_CPUFLAG_OF))) {
+                lpCurrentBD->lpLastKnownNextBreakpointAddress = lpCurrentAddress + zdInstruction->length + zdFirstOperand.imm.value.s;
+            } else {
+                lpCurrentBD->lpLastKnownNextBreakpointAddress = lpCurrentAddress + zdInstruction->length;
+            }
+            break;
+
+        /**
+         * Jump if less or equal
+         * 
+         * - JLE 0x1 (short, likely within our bounds).
+         * - Cannot be dynamic based on registry.
+         */
+        case ZYDIS_MNEMONIC_JNLE:
+            if (!getCpuFlagValue(lpContext, ZYDIS_CPUFLAG_ZF) && (getCpuFlagValue(lpContext, ZYDIS_CPUFLAG_SF) == getCpuFlagValue(lpContext, ZYDIS_CPUFLAG_OF))) {
                 lpCurrentBD->lpLastKnownNextBreakpointAddress = lpCurrentAddress + zdInstruction->length + zdFirstOperand.imm.value.s;
             } else {
                 lpCurrentBD->lpLastKnownNextBreakpointAddress = lpCurrentAddress + zdInstruction->length;
@@ -844,6 +873,7 @@ void EnrichByteDescriptor(ZydisDecodedInstruction* zdInstruction, ZydisDecodedOp
         case ZYDIS_MNEMONIC_ADD:
         case ZYDIS_MNEMONIC_SUB:
         case ZYDIS_MNEMONIC_XOR:
+        case ZYDIS_MNEMONIC_PXOR:
         case ZYDIS_MNEMONIC_XORPS:
         case ZYDIS_MNEMONIC_CMP:
         case ZYDIS_MNEMONIC_PUSH:
@@ -857,11 +887,19 @@ void EnrichByteDescriptor(ZydisDecodedInstruction* zdInstruction, ZydisDecodedOp
         case ZYDIS_MNEMONIC_BT:
         case ZYDIS_MNEMONIC_BTS:
 
-            // If moving memory to register, and memory is inside bounds, decrypt it first
-            if (zdOperands[1].type == ZYDIS_OPERAND_TYPE_MEMORY) {
-                GetDereferencedMemory(zdOperands[1], lpException, &lpCurrentBD->sInstructionActions[0].lpAddress, &lpCurrentBD->sInstructionActions[0].dwSize);
+            // If comparing memory (or other memory read in first operand), and memory is inside bounds, decrypt it first
+            if (zdOperands[0].type == ZYDIS_OPERAND_TYPE_MEMORY) {
+                GetDereferencedMemory(zdOperands[0], lpException, &lpCurrentBD->sInstructionActions[0].lpAddress, &lpCurrentBD->sInstructionActions[0].dwSize);
                 if (IsAddressWithinBounds(&lpPD, lpCurrentBD->sInstructionActions[0].lpAddress)) {
                     lpCurrentBD->sInstructionActions[0].eDesiredState = DESIRED_STATE_DECRYPTED;
+                }
+            }
+
+            // If moving memory to register (or other memory read in second operand), and memory is inside bounds, decrypt it first
+            if (zdOperands[1].type == ZYDIS_OPERAND_TYPE_MEMORY) {
+                GetDereferencedMemory(zdOperands[1], lpException, &lpCurrentBD->sInstructionActions[1].lpAddress, &lpCurrentBD->sInstructionActions[1].dwSize);
+                if (IsAddressWithinBounds(&lpPD, lpCurrentBD->sInstructionActions[1].lpAddress)) {
+                    lpCurrentBD->sInstructionActions[1].eDesiredState = DESIRED_STATE_DECRYPTED;
                 }
             }
 
@@ -923,6 +961,18 @@ void EnrichByteDescriptor(ZydisDecodedInstruction* zdInstruction, ZydisDecodedOp
 
             break;
 
+        case ZYDIS_MNEMONIC_NOT:
+        case ZYDIS_MNEMONIC_NEG:
+        case ZYDIS_MNEMONIC_DIV:
+            // If the operand is memory, decrypt it first
+            if (zdOperands[0].type == ZYDIS_OPERAND_TYPE_MEMORY) {
+                const char* mnemonic = ZydisMnemonicGetString(zdInstruction->mnemonic);
+                PRINT_FAILURE_AND_ABORT("Instruction 0x%X (%s) with length %d and memory operand is not supported yet.", *lpCurrentAddress, mnemonic, zdInstruction->length);
+            }
+
+            lpCurrentBD->lpLastKnownNextBreakpointAddress = lpCurrentAddress + zdInstruction->length;
+            break;
+
         /**
          * All others; do nothing.
          */
@@ -950,6 +1000,8 @@ void EnrichByteDescriptor(ZydisDecodedInstruction* zdInstruction, ZydisDecodedOp
         case ZYDIS_MNEMONIC_SETZ:
         case ZYDIS_MNEMONIC_SETLE:
         case ZYDIS_MNEMONIC_SETNZ:
+        case ZYDIS_MNEMONIC_LEAVE:
+        case ZYDIS_MNEMONIC_CDQE:
             lpCurrentBD->lpLastKnownNextBreakpointAddress = lpCurrentAddress + zdInstruction->length;
             break;
         default: {

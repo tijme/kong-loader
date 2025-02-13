@@ -83,10 +83,13 @@
 // #include "shellcode/Custom-ArgumentAsString-1.c" // Working
 // #include "shellcode/Custom-KitchenSink-1.c" // Working
 // #include "shellcode/Custom-Multiply-1.c" // Working
-// #include "shellcode/Msfvenom-WinExec-1.c" // Working
+#include "shellcode/Msfvenom-WinExec-1.c" // Working
 // #include "shellcode/Msfvenom-ShellReverseTCP-1.c" // Working? (from C:\ drive)
 // #include "shellcode/Msfvenom-MeterpreterReverseTCP-2.c" // Working
-#include "shellcode/Msfvenom-MeterpreterReverseTCP-1.c" // Not working
+// #include "shellcode/Nimplant-Raw-1.c" // Working
+
+// #include "shellcode/Mythic-Hannibal-1.c" // Not working
+// #include "shellcode/Msfvenom-MeterpreterReverseTCP-1.c" // Not working
 // #include "shellcode/Proprietary-CobaltStrike-StagelessHTTP-1.c" // Not working
 // #include "shellcode/Donut-MessageBoxA-1.c" // Not working
 
