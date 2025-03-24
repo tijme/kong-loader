@@ -76,6 +76,8 @@
  * 
  * Our custom shellcode is loaded from `Shellcode.c` for easy adjustability.
  */
+#include "shellcode/Your-Shellcode.c"
+
 // #include "shellcode/Custom-Storage-1.c" // Working
 // #include "shellcode/Custom-Syscall-1.c" // Working
 // #include "shellcode/Custom-ArgumentOnStack-1.c" // Working
@@ -83,15 +85,15 @@
 // #include "shellcode/Custom-ArgumentAsString-1.c" // Working
 // #include "shellcode/Custom-KitchenSink-1.c" // Working
 // #include "shellcode/Custom-Multiply-1.c" // Working
-#include "shellcode/Msfvenom-WinExec-1.c" // Working
+// #include "shellcode/Msfvenom-WinExec-1.c" // Working
 // #include "shellcode/Msfvenom-ShellReverseTCP-1.c" // Working? (from C:\ drive)
 // #include "shellcode/Msfvenom-MeterpreterReverseTCP-2.c" // Working
 // #include "shellcode/Nimplant-Raw-1.c" // Working
 
-// #include "shellcode/Mythic-Hannibal-1.c" // Not working
-// #include "shellcode/Msfvenom-MeterpreterReverseTCP-1.c" // Not working
-// #include "shellcode/Proprietary-CobaltStrike-StagelessHTTP-1.c" // Not working
-// #include "shellcode/Donut-MessageBoxA-1.c" // Not working
+// #include "shellcode/Mythic-Hannibal-1.c" // Not working yet
+// #include "shellcode/Msfvenom-MeterpreterReverseTCP-1.c" // Not working yet
+// #include "shellcode/Proprietary-CobaltStrike-StagelessHTTP-1.c" // Not working yet
+// #include "shellcode/Donut-MessageBoxA-1.c" // Not working yet
 
 /**
  * Custom helper functions that do not use global variables
