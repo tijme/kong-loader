@@ -6,7 +6,7 @@
         <img src="https://img.shields.io/badge/License-MPL%20V2.0-527c50?style=for-the-badge&labelColor=2b4e34" />
     </a> &nbsp;
     <a href="https://github.com/tijme/kong-loader/releases">
-        <img src="https://img.shields.io/github/v/release/tijme/kong-loader?style=for-the-badge&labelColor=2b4e34&color=527c50" />
+        <img src="https://img.shields.io/github/v/release/tijme/kong-loader?style=for-the-badge&labelColor=2b4e34&color=527c50&cache=1" />
     </a> &nbsp;
     <a href="https://github.com/tijme/kong-loader/actions">
         <img src="https://img.shields.io/github/actions/workflow/status/tijme/kong-loader/compile.yml?style=for-the-badge&labelColor=2b4e34&color=527c50" />
