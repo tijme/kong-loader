@@ -62,6 +62,7 @@ There are various caveats, for both offensive & defensive cyber security. Some e
 * Memory corruptions might occur if the shellcode tries to alter itself during runtime. 
 * Kong Loader's native code can be signatured and thus easily detected.
 * The execution is extremely slow, and can currently only be used for tiny first stage malware.
+    - Use [Relocatable](https://github.com/tijme/relocatable) to develop your tiny & truly Position Independent Code (PIC).
 * Malware that runs using Kong Loader can be hardly debugged.
     - Exceptions trigger in your debugger, for every single instruction.
     - Exceptions can't be dismissed, as they decrypt the instruction to be executed.
